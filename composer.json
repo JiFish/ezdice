@@ -1,6 +1,23 @@
 {
     "name": "jifish/ezdice",
+    "type": "library",
     "description": "A really simple PHP library for parsing dice notation and rolling.",
+    "homepage": "https://github.com/JiFish/ezdice",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Joseph Fowler",
+            "role": "Developer"
+        }
+    ],
+    "keywords": [
+        "dice",
+        "roll",
+        "rpg",
+        "dice-notation",
+        "die",
+        "dice-roller"
+    ],
     "require": {
         "php": ">=7.0"
     },
