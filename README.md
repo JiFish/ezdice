@@ -81,8 +81,6 @@ class WeightedDice extends ezdice\EZDice {
 }
 ```
 
-## Legalease
+## Legalese
 
 Released under the MIT licence. Copyright Joseph Fowler.
-
-
