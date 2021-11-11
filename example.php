@@ -3,7 +3,8 @@
 require 'ezdice.php';
 
 $ezd = new ezdice\EZDice();
-echo($ezd->roll('1d20+2d4').PHP_EOL);
+echo($ezd->roll('1d20+2d4-L+6').PHP_EOL);
 foreach($ezd->getDiceStates() as $die) {
-    print ' ['.$die['value'].'] ';
+    echo(' ['.$die['value'].'] ');
 }
+echo($ezd->getModifier());
