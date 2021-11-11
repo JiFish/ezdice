@@ -49,9 +49,10 @@ Returns *(int)* that is the total of the last roll.
 #### getDiceStates()
 
 Returns an *(array)* of *(array)*s that describes the state of the dice after the last roll. Each die has the following format:
-**sides** - *(int)* the number of sides the die has
-**value** - *(int)* the value the die rolled
-**dropped** - *(bool)* *true* if this dice was dropped, otherwise *false*. Dropped dice aren't counted towards the total.
+
+- **sides** - *(int)* the number of sides the die has
+- **value** - *(int)* the value the die rolled
+- **dropped** - *(bool)* *true* if this dice was dropped, otherwise *false*. Dropped dice aren't counted towards the total.
 
 #### getModifier()
 
@@ -64,7 +65,7 @@ e.g. for the string `1d8+10+1d4-2` this method would return `+8`.
 - Dice notation is in the form (number of dice)D(dice sides). e.g. `2d10`.
 - Additional dice can be chained with + and - operators. e.g. `2d10+1d6`.
 - Modifiers can also be specified. e.g. `2d10-5`
-- d% can be used as a shorthand for a percentage dice. `1d%` and `1d100` are equivalent.
+- d% can be used as a shorthand for a percentile dice. `1d%` and `1d100` are equivalent.
 - Append a roll with -L to drop the lowest dice in that group, or -H to drop the highest. Dropped dice are excluded from the total. e.g. `2d20-L` will roll 2 twenty sided dice and drop the lowest.
 - No notation is currently provided for fudge dice. You can use `1d3-2` instead.
 
