@@ -34,6 +34,12 @@ Output:
 Rolls: 17, 4, 2,
 ```
 
+## Installing with Composer
+
+Composer is not required, but you can add ezdice to your project with it:
+
+`composer require jifish/ezdice`
+
 ### Methods
 
 #### roll($diceStr)

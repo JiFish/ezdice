@@ -1,0 +1,10 @@
+{
+    "name": "jifish/ezdice",
+    "description": "A really simple PHP library for parsing dice notation and rolling.",
+    "require": {
+        "php": ">=7.0"
+    }
+    "autoload": {
+        "files": ["ezdice.php"]
+    }
+}
