@@ -22,16 +22,16 @@ Here's a basic example
 require 'ezdice.php';
 
 $ezd = new ezdice\EZDice();
-echo($ezd->roll('1d20+2d4').PHP_EOL);
+echo($ezd->roll('1d20+2d4'));
+echo(' Rolls:');
 foreach($ezd->getDiceStates() as $die) {
     echo(' ['.$die['value'].'] ');
 }
 ```
 
-Output:
+Example Output:
 ```
-23
-Rolls: [17] [4] [2]
+23 Rolls: [17] [4] [2]
 ```
 
 ## Installing with Composer
@@ -68,12 +68,13 @@ e.g. if you rolled `1d8+10+1d4-2` this method would return `+8`.
 
 ## Dice Notation
 
-- Dice notation is in the form (number of dice)d(dice sides). e.g. `2d10`.
-- Additional dice can be chained with + and - operators. e.g. `2d10+1d6`.
+- Dice notation is in the form (number of dice)**d**(dice sides). e.g. `2d10`.
+- Additional dice can be chained with **+** and **-** operators. e.g. `2d10+1d6`.
 - Modifiers can also be specified. e.g. `2d10-5`
 - d% can be used as a shorthand for a percentile dice. `1d%` and `1d100` are equivalent.
 - Append a roll with -L to drop the lowest dice in that group, or -H to drop the highest. Dropped dice are excluded from the total. e.g. `2d20-L` will roll 2 twenty sided dice and drop the lowest.
 - No notation is currently provided for fudge dice. You can use `1d3-2` instead.
+- Whitespace, and anything else not recognised as a dice or a modifier, is treated like a **+** operator. e.g. `foo10 1d4bar1d4  5` is equivalent to `5+1d4+1d4+10`, or simply `2d4+15`.
 
 ## Replacing the random number generator
 

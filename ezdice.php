@@ -7,15 +7,19 @@ class EZDice {
     private $states = [];
     private $modifier = 0;
 
-    public function roll($diceStr)
+    public function roll(string $diceStr)
     {
         // Reset result values
         $this->total = 0;
         $this->states = [];
         $this->modifier = 0;
 
-        // Strip all whitespace
-        $diceStr = preg_replace('/\s+/', '', $diceStr);
+        // No dice to roll?
+        if (is_numeric($diceStr)) {
+            $this->total = (int)$diceStr;
+            $this->modifier = $this->total;
+            return $this->total;
+        }
 
         // Search for dice groups and modifiers
         $re = '/(?<operator>[\+-])?(?<number>\d+)(?:[dD](?<sides>(?:\d+|%))(?:-(?<variant>[LlHh]))?)?/m';
@@ -32,7 +36,8 @@ class EZDice {
         return $this->total;
     }
 
-    private function addState($sides, $value, $dropped = false) {
+    private function addState(int $sides, int $value, bool $dropped = false): void
+    {
         $this->states[] = [
             'sides' => $sides,
             'value' => $value,
@@ -40,27 +45,31 @@ class EZDice {
         ];
     }
 
-    private function processGroup($group) {
+    private function processGroup(array $group): void
+    {
         // Collect information about group
         $operator = $group['operator'] ?? '+';
         $number = $group['number'];
         $sides = $group['sides'] ?? null;
-        $variant = (isset($group['variant']) ? strtoupper($group['variant']) : null);
 
         // Scaler makes the output postive or negative
         $scaler = ($operator=='-' ? -1 : 1);
 
         // If sides isn't specified, this is a modifier
-        if($sides === null) {
+        if ($sides === null) {
             $this->total += $number*$scaler;
             $this->modifier += $number*$scaler;
+            return;
         }
 
-        // Is it is a valid group of dice?
-        elseif ($sides && $number > 0) {
-            // 'd%' can be used as shorthand for 'd100'
-            $sides = $sides=="%" ? 100 : (int)$sides;
+        // Collect variant information from group
+        $variant = (isset($group['variant']) ? strtoupper($group['variant']) : null);
 
+        // 'd%' can be used as shorthand for 'd100'
+        $sides = $sides=="%" ? 100 : $sides;
+
+        // Is it is a valid group of dice?
+        if ($sides && $number > 0) {
             // Roll Dice
             $results = [];
             for ($c = 0; $c < $number; $c++) {
@@ -89,19 +98,23 @@ class EZDice {
         }
     }
 
-    protected function getRandomNumber($max) {
+    protected function getRandomNumber(int $max): int
+    {
         return mt_rand(1,$max);
     }
 
-    public function getTotal() {
+    public function getTotal(): int
+    {
         return $this->total;
     }
 
-    public function getDiceStates() {
+    public function getDiceStates(): array
+    {
         return $this->states;
     }
 
-    public function getModifier() {
+    public function getModifier(): string
+    {
         if (!$this->modifier) return "";
         return sprintf("%+d",$this->modifier);
     }
