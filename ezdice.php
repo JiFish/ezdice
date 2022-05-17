@@ -3,6 +3,10 @@
 namespace ezdice;
 
 class EZDice {
+    // Magic dice & modifier matching regex
+    private $re = '(?<operator>[\+-])?\s*(?<number>\d+)(?:[dD](?<sides>(?:\d+|%))(?:-(?<variant>[LlHh]))?)?';
+
+    // Stores information on last roll
     private $total = 0;
     private $states = [];
     private $modifier = 0;
@@ -22,8 +26,7 @@ class EZDice {
         }
 
         // Search for dice groups and modifiers
-        $re = '/(?<operator>[\+-])?(?<number>\d+)(?:[dD](?<sides>(?:\d+|%))(?:-(?<variant>[LlHh]))?)?/m';
-        preg_match_all($re, $diceStr, $matches, PREG_SET_ORDER, 0);
+        preg_match_all("/{$this->re}/", $diceStr, $matches, PREG_SET_ORDER, 0);
 
         // Returning false if no matches found
         if (sizeof($matches) == 0) return false;
