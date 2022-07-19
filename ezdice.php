@@ -83,8 +83,8 @@ class EZDice {
             if ($variant && $number > 1) {
                 // Sort low to high
                 sort($results, SORT_NUMERIC);
-                // Reverse array if dropping highest
-                if ($variant == 'H') {
+                // Reverse array if dropping lowest
+                if ($variant == 'L') {
                     $results = array_reverse($results);
                 }
                 $droppedResult = array_pop($results);
