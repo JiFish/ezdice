@@ -44,7 +44,7 @@ You don't have to use composer to include EZDice in your project, but you can:
 
 ### roll($diceStr)
 
-Parse **$diceStr** as dice notation then roll those dice. Returns *(int)* total of all rolls, or *false* if no dice are found.
+Parse **$diceStr** as dice notation then roll those dice. Returns *(int)* total of all rolls and modifiers, or *false* if none were found.
 
 The parser is very forgiving, ignoring whitespace and anything else it doesn't recognise. It is also case-insensitive. Dice notation is briefly documented below.
 
@@ -62,7 +62,7 @@ Returns an *(array)* of dice that describes the state of the dice after the last
 
 ### getModifier()
 
-Returns a *(string)* representing the total of all modifiers in the last roll. If there were no modifiers, or they cancelled out, a empty string is returned. You can cast this to an *(int)* if needed.
+Returns a *(string)* representing the total of all modifiers in the last roll. If there were no modifiers, or they cancelled out, an empty string is returned. You can cast this to an *(int)* if needed.
 
 e.g. if you rolled `1d8+10+1d4-2` this method would return `+8`.
 
