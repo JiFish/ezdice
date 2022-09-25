@@ -44,7 +44,7 @@ You don't have to use composer to include EZDice in your project, but you can:
 
 ### roll($diceStr)
 
-Parse **$diceStr** as dice notation then roll those dice. Returns *(int)* total of all rolls and modifiers, or *false* if none were found.
+Parse **$diceStr** as dice notation, then roll those dice. Returns *(int)* total of all rolls and modifiers, or *false* if none were found.
 
 The parser is very forgiving, ignoring whitespace and anything else it doesn't recognise. It is also case-insensitive. Dice notation is briefly documented below.
 
@@ -66,13 +66,17 @@ Returns a *(string)* representing the total of all modifiers in the last roll. I
 
 e.g. if you rolled `1d8+10+1d4-2` this method would return `+8`.
 
+### strContainsDice($diceStr)
+
+Parse **$diceStr** and returns true if it contains at least one dice roll, otherwise returns false. Useful for verifying user input. Modifiers without dice don't count.
+
 ## Dice Notation
 
 - Dice notation is in the form (number of dice)**d**(dice sides). e.g. `2d10`.
 - Additional dice can be chained with **+** and **-** operators. e.g. `2d10+1d6`.
 - Modifiers can also be specified. e.g. `2d10-5`
 - d% can be used as a shorthand for a percentile dice. `1d%` and `1d100` are equivalent.
-- Append a roll with -L to drop the lowest dice in that group, or -H to drop the highest. Dropped dice are excluded from the total. e.g. `2d20-L` will roll 2 twenty sided dice and drop the lowest.
+- Append a roll with -L to drop the lowest dice in that group, or -H to drop the highest. Dropped dice are excluded from the total. e.g. `2d20-L` will roll 2 twenty sided dice and drop the lowest. You can also specify a number of dice to drop e.g. `6d6-H3` will drop the highest 3 rolls.
 - No notation is currently provided for fudge dice. You can use `1d3-2` instead.
 - Whitespace, and anything else not recognised as a dice or a modifier, is treated like a **+** operator. e.g. `foo10 1d4bar1d4  5` is equivalent to `5+1d4+1d4+10`, or simply `2d4+15`.
 

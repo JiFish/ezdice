@@ -16,7 +16,9 @@
         "rpg",
         "dice-notation",
         "die",
-        "dice-roller"
+        "dice-roller",
+        "roller",
+        "random"
     ],
     "require": {
         "php": ">=7.0"
