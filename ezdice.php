@@ -7,7 +7,7 @@ namespace ezdice;
  */
 class EZDice {
     // Magic dice & modifier matching regex
-    private const REGEX_DICE = '/(?<operator>[\+-]?)\s*(?:(?:(?<number>\d+)*[dD](?<type>(?:\d+|[%fF]))(?:-(?<drop>[LlHh])(?<dquantity>\d+)?)?)|(?<mod>[0-9]\d*))/';
+    private const REGEX_DICE = '/(?<operator>[\+-]?)\s*(?:(?:(?<number>\d+)*[dD](?<type>(?:\d+|[%fF]))(?:-(?<drop>[LlHh])(?<dropAmount>\d+)?)?)|(?<mod>[0-9]\d*))/';
     private const REGEX_DICE_SINGLE = '/(?<number>\d+)*[dD](?<type>(?:[1-9]\d*|[%fF]))/';
 
     // Stores information on last roll
@@ -209,7 +209,7 @@ class EZDice {
 
     private function processGroup(array $group): void
     {
-        // Scaler makes the output postive or negative
+        // Scaler makes the output positive or negative
         $isNegative = ($group['operator'] == '-');
         $scaler = ($isNegative ? -1 : 1);
 
@@ -261,7 +261,7 @@ class EZDice {
             } else { // Dropping high, so sort ascending
                 sort($results, SORT_NUMERIC);
             }
-            $dropQuantity = min($group['dquantity'] ?? 1, $number);
+            $dropQuantity = min($group['dropAmount'] ?? 1, $number);
             for ($i=0; $i < $dropQuantity; $i++) {
                 $droppedResult = array_pop($results);
                 $this->addState($type, $droppedResult, $isNegative, true);
@@ -287,7 +287,7 @@ class EZDice {
     }
 
     /**
-     * Generates the psudo-random number for dice rolls.
+     * Generates the pseudo-random number for dice rolls.
      *
      * @param int $max the highest number on the dice. Roll is 1 - $max (inclusive).
      *
