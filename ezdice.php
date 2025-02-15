@@ -87,6 +87,7 @@ class EZDice {
         if (is_numeric($diceStr)) {
             $this->total = (int)$diceStr;
             $this->modifier = $this->total;
+            $this->diceModsNumber = 1;
             return $this->total;
         }
 

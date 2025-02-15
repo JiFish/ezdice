@@ -246,6 +246,33 @@ function testDropMultipleHighestDice() {
     assertEquals(2, $droppedCount);
 }
 
+function testGetDiceModsNumber() {
+    $ezd = new EZDice();
+    $ezd->roll('');
+    assertEquals(0, $ezd->getDiceGroupNumber());
+    assertEquals(0, $ezd->getDiceModsNumber());
+
+    $ezd->roll('42');
+    assertEquals(0, $ezd->getDiceGroupNumber());
+    assertEquals(1, $ezd->getDiceModsNumber());
+
+    $ezd->roll('d6+2d4');
+    assertEquals(2, $ezd->getDiceGroupNumber());
+    assertEquals(0, $ezd->getDiceModsNumber());
+
+    $ezd->roll('1d6+2d4+5');
+    assertEquals(2, $ezd->getDiceGroupNumber());
+    assertEquals(1, $ezd->getDiceModsNumber());
+
+    $ezd->roll('1d6+2d4+5+10');
+    assertEquals(2, $ezd->getDiceGroupNumber());
+    assertEquals(2, $ezd->getDiceModsNumber());
+
+    $ezd->roll('1d6+2d4+5+10-3-1d%');
+    assertEquals(3, $ezd->getDiceGroupNumber());
+    assertEquals(3, $ezd->getDiceModsNumber());
+}
+
 // Run tests
 $startTime = microtime(true);
 for ($i = 0; $i < TEST_RUNS; $i++) {
@@ -269,6 +296,7 @@ testGetModifier();
 testStrContainsDice();
 testStrIsStrictlyDice();
 testRollEmptyString();
+testGetDiceModsNumber();
 
 echo "All tests passed.\n";
 echo "Time taken: " . ($endTime - $startTime) . " seconds.\n";
