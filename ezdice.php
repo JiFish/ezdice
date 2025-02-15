@@ -17,13 +17,56 @@ class EZDice {
     private $diceGroupNumber = 0;
     private $diceModsNumber = 0;
 
-    private function resetResultValues(): void
+    /**
+     * Get the state of the dice after the last roll.
+     *
+     * @return array array that describes the state of the dice after the last roll.
+     */
+    public function getDiceStates(): array
     {
-        $this->total = 0;
-        $this->states = [];
-        $this->modifier = 0;
-        $this->diceGroupNumber = 0;
-        $this->diceModsNumber = 0;
+        return $this->states;
+    }
+
+    /**
+     * Get the number of dice groups in the last roll.
+     *
+     * @return int the number of dice groups in the last roll.
+     */
+    public function getDiceGroupNumber(): int
+    {
+        return $this->diceGroupNumber;
+    }
+
+    /**
+     * Get the number of modifiers in the last roll.
+     * 
+     * @return int the number of modifiers in the last roll.
+     */
+    public function getDiceModsNumber(): int
+    {
+        return $this->diceModsNumber;
+    }
+
+    /**
+     * Get the combined modifiers of the last roll.
+     *
+     * @return string representing the total of all modifiers in the last roll. If there were no modifiers, or they
+     *                cancelled out, an empty string is returned.
+     */
+    public function getModifier(): string
+    {
+        if (!$this->modifier) return "";
+        return sprintf("%+d", $this->modifier);
+    }
+
+    /**
+     * Get the total of the last roll.
+     *
+     * @return bool result of test.
+     */
+    public function getTotal(): int
+    {
+        return $this->total;
     }
 
     /**
@@ -103,32 +146,6 @@ class EZDice {
         return false;
     }
 
-    /** Parse **$diceStr** and return a count of the valid dice groups, or false if any invalid groups are encountered.
-     * Invalid groups are have zero quantity or zero sides.
-     * 
-     * @param string $diceStr the string which may contain dice rolls.
-     * 
-     * @return int|false the number of valid dice groups, or false if any invalid dice are encountered.
-     */
-    private function countAndValidateDiceGroups(string $diceStr): int|false
-    {
-        // Search for dice groups and modifiers
-        preg_match_all(self::REGEX_DICE_SINGLE, $diceStr, $matches, PREG_SET_ORDER, 0);
-
-        $groupCount = 0;
-        // Process each match
-        foreach ($matches as $m) {
-            // Check for valid dice notation
-            if ((!is_numeric($m['type']) || $m['type'] > 0) && ($m['number'] === "" || $m['number'] > 0)) {
-                $groupCount++;
-            } else {
-                return false;
-            }
-        }
-
-        return $groupCount;
-    }
-
     /**
      * Parse **$diceStr** and determine if it only contains dice and modifiers.
      * Whitespace is allowed by default, but strings containing only whitespace will always return false.
@@ -169,6 +186,25 @@ class EZDice {
             'type' => "d$type",
             'group' => $this->diceGroupNumber,
         ];
+    }
+
+    private function countAndValidateDiceGroups(string $diceStr): int|false
+    {
+        // Search for dice groups and modifiers
+        preg_match_all(self::REGEX_DICE_SINGLE, $diceStr, $matches, PREG_SET_ORDER, 0);
+
+        $groupCount = 0;
+        // Process each match
+        foreach ($matches as $m) {
+            // Check for valid dice notation
+            if ((!is_numeric($m['type']) || $m['type'] > 0) && ($m['number'] === "" || $m['number'] > 0)) {
+                $groupCount++;
+            } else {
+                return false;
+            }
+        }
+
+        return $groupCount;
     }
 
     private function processGroup(array $group): void
@@ -241,6 +277,15 @@ class EZDice {
         }
     }
 
+    private function resetResultValues(): void
+    {
+        $this->total = 0;
+        $this->states = [];
+        $this->modifier = 0;
+        $this->diceGroupNumber = 0;
+        $this->diceModsNumber = 0;
+    }
+
     /**
      * Generates the psudo-random number for dice rolls.
      *
@@ -251,57 +296,5 @@ class EZDice {
     protected function getRandomNumber(int $max): int
     {
         return mt_rand(1, $max);
-    }
-
-    /**
-     * Get the total of the last roll.
-     *
-     * @return bool result of test.
-     */
-    public function getTotal(): int
-    {
-        return $this->total;
-    }
-
-    /**
-     * Get the state of the dice after the last roll.
-     *
-     * @return array array that describes the state of the dice after the last roll.
-     */
-    public function getDiceStates(): array
-    {
-        return $this->states;
-    }
-
-    /**
-     * Get the combined modifiers of the last roll.
-     *
-     * @return string representing the total of all modifiers in the last roll. If there were no modifiers, or they
-     *                cancelled out, an empty string is returned.
-     */
-    public function getModifier(): string
-    {
-        if (!$this->modifier) return "";
-        return sprintf("%+d", $this->modifier);
-    }
-    
-    /**
-     * Get the number of dice groups in the last roll.
-     *
-     * @return int the number of dice groups in the last roll.
-     */
-    public function getDiceGroupNumber(): int
-    {
-        return $this->diceGroupNumber;
-    }
-
-    /**
-     * Get the number of modifiers in the last roll.
-     * 
-     * @return int the number of modifiers in the last roll.
-     */
-    public function getDiceModsNumber(): int
-    {
-        return $this->diceModsNumber;
     }
 }
