@@ -182,6 +182,70 @@ function testRollPercentileDie() {
     assertLessThanOrEqual(100, $result);
 }
 
+function testDropLowestDie() {
+    $ezd = new EZDice();
+    $result = $ezd->roll('2d6-L');
+    assertGreaterThanOrEqual(1, $result);
+    assertLessThanOrEqual(6, $result);
+    $states = $ezd->getDiceStates();
+    assertEquals(2, count($states));
+    $droppedDie = min($states[0]['value'], $states[1]['value']);
+    assertTrue($states[0]['dropped'] || $states[1]['dropped']);
+    assertEquals($droppedDie, $states[0]['dropped'] ? $states[0]['value'] : $states[1]['value']);
+}
+
+function testDropHighestDie() {
+    $ezd = new EZDice();
+    $result = $ezd->roll('2d6-H');
+    assertGreaterThanOrEqual(1, $result);
+    assertLessThanOrEqual(6, $result);
+    $states = $ezd->getDiceStates();
+    assertEquals(2, count($states));
+    $droppedDie = max($states[0]['value'], $states[1]['value']);
+    assertTrue($states[0]['dropped'] || $states[1]['dropped']);
+    assertEquals($droppedDie, $states[0]['dropped'] ? $states[0]['value'] : $states[1]['value']);
+}
+
+function testDropMultipleLowestDice() {
+    $ezd = new EZDice();
+    $result = $ezd->roll('4d6-L2');
+    assertGreaterThanOrEqual(2, $result);
+    assertLessThanOrEqual(12, $result);
+    $states = $ezd->getDiceStates();
+    assertEquals(4, count($states));
+    $values = array_column($states, 'value');
+    sort($values);
+    $droppedValues = array_slice($values, 0, 2);
+    $droppedCount = 0;
+    foreach ($states as $state) {
+        if ($state['dropped']) {
+            assertTrue(in_array($state['value'], $droppedValues));
+            $droppedCount++;
+        }
+    }
+    assertEquals(2, $droppedCount);
+}
+
+function testDropMultipleHighestDice() {
+    $ezd = new EZDice();
+    $result = $ezd->roll('4d6-H2');
+    assertGreaterThanOrEqual(2, $result);
+    assertLessThanOrEqual(12, $result);
+    $states = $ezd->getDiceStates();
+    assertEquals(4, count($states));
+    $values = array_column($states, 'value');
+    rsort($values);
+    $droppedValues = array_slice($values, 0, 2);
+    $droppedCount = 0;
+    foreach ($states as $state) {
+        if ($state['dropped']) {
+            assertTrue(in_array($state['value'], $droppedValues));
+            $droppedCount++;
+        }
+    }
+    assertEquals(2, $droppedCount);
+}
+
 // Run tests
 $startTime = microtime(true);
 for ($i = 0; $i < TEST_RUNS; $i++) {
@@ -192,6 +256,10 @@ for ($i = 0; $i < TEST_RUNS; $i++) {
     testGetDiceStates();
     testGetDiceStatesWithGroups();
     testRollPercentileDie();
+    testDropLowestDie();
+    testDropHighestDie();
+    testDropMultipleLowestDice();
+    testDropMultipleHighestDice();
 }
 $endTime = microtime(true);
 
