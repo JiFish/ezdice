@@ -10,6 +10,30 @@ class EZDice {
     private const REGEX_DICE = '/(?<operator>[\+-]?)\s*(?:(?:(?<number>\d+)*[dD](?<type>(?:\d+|[%fF]))(?:-(?<drop>[LlHh])(?<dropAmount>\d+)?)?)|(?<mod>[0-9]\d*))/';
     private const REGEX_DICE_SINGLE = '/(?<number>\d+)*[dD](?<type>(?:[1-9]\d*|[%fF]))/';
 
+    private array $customDice = [
+        'F' => [
+            'type' => 'dF',
+            'side_count' => 3,
+            'sides' => [
+                ['value' => -1, 'name' => '-'],
+                ['value' => 0, 'name' => ''],
+                ['value' => 1, 'name' => '+'],
+            ]
+        ],
+        '%' => [
+            'type' => 'd%',
+            'side_count' => 100,
+        ],
+        'C' => [
+            'type' => 'Coin',
+            'side_count' => 2,
+            'sides' => [
+                ['value' => 1, 'name' => 'Heads'],
+                ['value' => 0, 'name' => 'Tails'],
+            ]
+        ],
+    ];
+
     // Stores information on last roll
     private $total = 0;
     private $states = [];
@@ -175,18 +199,23 @@ class EZDice {
         return $diceStr == "";
     }
 
-    private function addState(mixed $type, int $value, bool $isNegative, bool $dropped = false): void
+    private function addState(array $diceDefinition, int $value, bool $isNegative, bool $dropped = false): void
     {
-        // Fudge dice have 3 sides
-        $sides = ($type == 'F' ? 3 : $type);
-        $this->states[] = [
-            'sides' => $sides,
-            'value' => $value,
+        $state = [
+            'sides' => $diceDefinition['side_count'],
+            'type' => $diceDefinition['type'],
             'dropped' => $dropped,
             'negative' => $isNegative,
-            'type' => "d$type",
             'group' => $this->diceGroupNumber,
         ];
+        if (isset($diceDefinition['sides'][$value])) {
+            $state['value'] = $diceDefinition['sides'][$value]['value'];
+            $state['name'] = $diceDefinition['sides'][$value]['name'];
+        } else {
+            $state['value'] = $value;
+            $state['name'] = $value;
+        }
+        $this->states[] = $state;
     }
 
     private function countAndValidateDiceGroups(string $diceStr): int|false
@@ -231,29 +260,21 @@ class EZDice {
 
         // Collect information about dice
         $number = $group['number'] ? $group['number'] : 1;
-        $type = $group['type'];
+        $type = strtoupper($group['type']);
+        $diceDefinition = $this->customDice[$type] ?? [
+            'type' => "d$type",
+            'side_count' => (int)$type,
+        ];
 
         // Collect drop information
         $drop = (isset($group['drop']) ? strtoupper($group['drop']) : null);
 
-        // 'd%' can be used as shorthand for 'd100'
-        if ($type == "%") {
-            $type = 100;
-        } elseif ($type == "f") { // Fate dice needing capitalisation
-            $type = "F";
-        }
-
-        // Roll Dice
         $results = [];
-        // Special case for Fudge dice
-        if ($type == "F") {
-            for ($i = 0; $i < $number; $i++)
-                $results[] = $this->getRandomNumber(3) - 2;
-        } else {
-            for ($i = 0; $i < $number; $i++)
-                $results[] = $this->getRandomNumber($type);
+        for ($i = 0; $i < $number; $i++) {
+            $results[] = $this->getRandomNumber($diceDefinition['side_count']);
         }
 
+        // TODO: Dice dropping isn't taking custom dice values into account
         // Dropping dice
         if ($drop) {
             // Dropping low, so sort descending
@@ -265,7 +286,7 @@ class EZDice {
             $dropQuantity = min($group['dropAmount'] ?? 1, $number);
             for ($i=0; $i < $dropQuantity; $i++) {
                 $droppedResult = array_pop($results);
-                $this->addState($type, $droppedResult, $isNegative, true);
+                $this->addState($diceDefinition, $droppedResult, $isNegative, true);
             }
             // Cosmetic re-shuffle of rest of dice
             shuffle($results);
@@ -274,7 +295,7 @@ class EZDice {
         // Process the rest of the dice
         foreach($results as $result) {
             $this->total += $result*$scaler;
-            $this->addState($type, $result, $isNegative);
+            $this->addState($diceDefinition, $result, $isNegative);
         }
     }
 
