@@ -7,12 +7,15 @@ namespace ezdice;
  */
 class EZDice {
     // Magic dice & modifier matching regex
-    private $re = '(?<operator>[\+-])?\s*(?<number>\d+)(?:[dD](?<sides>(?:\d+|%))(?:-(?<drop>[LlHh])(?<dquantity>\d+)?)?)';
+    private const REGEX_DICE = '/(?<operator>[\+-]?)\s*(?:(?:(?<number>\d+)*[dD](?<type>(?:\d+|[%fF]))(?:-(?<drop>[LlHh])(?<dquantity>\d+)?)?)|(?<mod>[0-9]\d*))/';
+    private const REGEX_DICE_SINGLE = '/(?<number>\d+)*[dD](?<type>(?:[1-9]\d*|[%fF]))/';
 
     // Stores information on last roll
     private $total = 0;
     private $states = [];
     private $modifier = 0;
+    private $diceGroupNumber = 0;
+    private $diceModsNumber = 0;
 
     /**
      * Parse **$diceStr** as dice notation, then roll those dice.
@@ -24,12 +27,14 @@ class EZDice {
      *
      * @return int|false total of all rolls and modifiers, or false if none were found.
      */
-    public function roll(string $diceStr)
+    public function roll(string $diceStr): int|false
     {
         // Reset result values
         $this->total = 0;
         $this->states = [];
         $this->modifier = 0;
+        $this->diceGroupNumber = 0;
+        $this->diceModsNumber = 0;
 
         // No dice to roll?
         if (is_numeric($diceStr)) {
@@ -39,8 +44,7 @@ class EZDice {
         }
 
         // Search for dice groups and modifiers
-        // The extra "?" at the end of the regex allows it to find modifiers too
-        preg_match_all("/{$this->re}?/", $diceStr, $matches, PREG_SET_ORDER, 0);
+        preg_match_all(self::REGEX_DICE, $diceStr, $matches, PREG_SET_ORDER, 0);
 
         // Returning false if no matches found
         if (sizeof($matches) == 0) return false;
@@ -50,7 +54,28 @@ class EZDice {
             $this->processGroup($m);
         }
 
+        // No dice were rolled and no modifiers were found
+        if ($this->diceModsNumber == 0 && $this->diceGroupNumber == 0) {
+            return false;
+        }
+
         return $this->total;
+    }
+
+    /** Convenience function that ensures **$diceStr** is strictly valid before rolling it.
+     * 
+     * @param string $diceStr the string containing the dice rolls.
+     * @param bool $allowWhitespace whether the string can contain whitespace. Default is true.
+     * @param bool $mustContainDice whether the string must contain at least 1 die. Default is true.
+     *
+     * @return int|false total of all rolls and modifiers, or false if none were found, or the string was invalid.
+     */
+    public function rollStrict(string $diceStr, bool $allowWhitespace = true, bool $mustContainDice = true): int|false
+    {
+        if (!$this->strIsStrictlyDice($diceStr, $allowWhitespace, $mustContainDice)) {
+            return false;
+        }
+        return $this->roll($diceStr);
     }
 
     /**
@@ -60,73 +85,154 @@ class EZDice {
      *
      * @return bool true if $diceStr contains at least one dice roll, otherwise false.
      */
-    public function strContainsDice(string $diceStr)
+    public function strContainsDice(string $diceStr): bool
     {
-        return (preg_match_all("/{$this->re}/", $diceStr) > 0);
+        preg_match_all(self::REGEX_DICE_SINGLE, $diceStr, $matches, PREG_SET_ORDER, 0);
+        foreach ($matches as $m) {
+            // Check for valid dice notation
+            if ((!is_numeric($m['type']) || (int)$m['type'] > 0) && ($m['number'] === "" || (int)$m['number'] > 0)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
-    private function addState(int $sides, int $value, bool $dropped = false): void
+    /** Parse **$diceStr** and return a count of the valid dice groups, or false if any invalid groups are encountered.
+     * Invalid groups are have zero quantity or zero sides.
+     * 
+     * @param string $diceStr the string which may contain dice rolls.
+     * 
+     * @return int|false the number of valid dice groups, or false if any invalid dice are encountered.
+     */
+    private function countAndValidateDiceGroups(string $diceStr): int|false
     {
+        // Search for dice groups and modifiers
+        preg_match_all(self::REGEX_DICE_SINGLE, $diceStr, $matches, PREG_SET_ORDER, 0);
+
+        $groupCount = 0;
+        // Process each match
+        foreach ($matches as $m) {
+            // Check for valid dice notation
+            if ((!is_numeric($m['type']) || $m['type'] > 0) && ($m['number'] === "" || $m['number'] > 0)) {
+                $groupCount++;
+            } else {
+                return false;
+            }
+        }
+
+        return $groupCount;
+    }
+
+    /**
+     * Parse **$diceStr** and determine if it only contains dice and modifiers.
+     * Whitespace is allowed by default, but strings containing only whitespace will always return false.
+     *
+     * @param string $diceStr the string which may contain dice rolls.
+     * @param bool $allowWhitespace whether the string can contain whitespace. Default is true.
+     * @param bool $mustContainDice whether the string must contain at least 1 die. Default is true.
+     *
+     * @return bool true if $diceStr contains dice, modifiers or whitespace, otherwise false.
+     */
+    public function strIsStrictlyDice(string $diceStr, bool $allowWhitespace = true, bool $mustContainDice = true): bool
+    {
+        // Remove whitespace
+        $diceStr = preg_replace("/\s+/", "", $diceStr, -1, $count);
+        if ($diceStr == "") return false;
+        if (!$allowWhitespace && $count > 0) return false;
+
+        // Check for invalid dice groups, get get dice count
+        $diceCount = $this->countAndValidateDiceGroups($diceStr);
+        if ($diceCount === false || ($mustContainDice && $diceCount == 0)) {
+            return false;
+        }
+
+        // Remove anything that's a dice or modifier, if there's anything left then it's not strictly dice
+        $diceStr = preg_replace(self::REGEX_DICE, "", $diceStr);
+        return $diceStr == "";
+    }
+
+    private function addState(mixed $type, int $value, bool $isNegative, bool $dropped = false): void
+    {
+        // Fudge dice have 3 sides
+        $sides = ($type == 'F' ? 3 : $type);
         $this->states[] = [
             'sides' => $sides,
             'value' => $value,
-            'dropped' => $dropped
+            'dropped' => $dropped,
+            'negative' => $isNegative,
+            'type' => "d$type",
+            'group' => $this->diceGroupNumber,
         ];
     }
 
     private function processGroup(array $group): void
     {
-        // Collect information about group
-        $operator = $group['operator'] ?? '+';
-        $number = $group['number'];
-        $sides = $group['sides'] ?? null;
-
         // Scaler makes the output postive or negative
-        $scaler = ($operator=='-' ? -1 : 1);
+        $isNegative = ($group['operator'] == '-');
+        $scaler = ($isNegative ? -1 : 1);
 
-        // If sides isn't specified, this is a modifier
-        if ($sides === null) {
-            $this->total += $number*$scaler;
-            $this->modifier += $number*$scaler;
+        // Modifiers (not dice)
+        if (isset($group['mod'])) {
+            $this->total += $group['mod']*$scaler;
+            $this->modifier += $group['mod']*$scaler;
+            $this->diceModsNumber++;
             return;
         }
 
-        // Collect drop information from group
+        // Check for zero sized groups, or zero sided dice
+        if ($group['number'] == 0 || $group['type'] == 0) {
+            return;
+        }
+
+        $this->diceGroupNumber++;
+
+        // Collect information about dice
+        $number = $group['number'] ? $group['number'] : 1;
+        $type = $group['type'];
+
+        // Collect drop information
         $drop = (isset($group['drop']) ? strtoupper($group['drop']) : null);
 
         // 'd%' can be used as shorthand for 'd100'
-        $sides = $sides=="%" ? 100 : $sides;
+        if ($type == "%") {
+            $type = 100;
+        } elseif ($type == "f") { // Fate dice needing capitalisation
+            $type = "F";
+        }
 
-        // Is it is a valid group of dice?
-        if ($sides && $number > 0) {
-            // Roll Dice
-            $results = [];
-            for ($c = 0; $c < $number; $c++) {
-                $results[] = $this->getRandomNumber($sides);
-            }
+        // Roll Dice
+        $results = [];
+        // Special case for Fudge dice
+        if ($type == "F") {
+            for ($i = 0; $i < $number; $i++)
+                $results[] = $this->getRandomNumber(3) - 2;
+        } else {
+            for ($i = 0; $i < $number; $i++)
+                $results[] = $this->getRandomNumber($type);
+        }
 
-            // Dropping dice
-            if ($drop) {
-                $dropQuantity = min($group['dquantity'] ?? 1, $number);
-                // Sort low to high
+        // Dropping dice
+        if ($drop) {
+            // Dropping low, so sort descending
+            if ($drop == 'L') {
+                rsort($results, SORT_NUMERIC);
+            } else { // Dropping high, so sort ascending
                 sort($results, SORT_NUMERIC);
-                // Reverse array if dropping lowest
-                if ($drop == 'L') {
-                    $results = array_reverse($results);
-                }
-                for ($i=0; $i < $dropQuantity; $i++) {
-                    $droppedResult = array_pop($results);
-                    $this->addState($sides, $droppedResult, true);
-                }
-                // Cosmetic re-shuffle of rest of dice
-                shuffle($results);
             }
+            $dropQuantity = min($group['dquantity'] ?? 1, $number);
+            for ($i=0; $i < $dropQuantity; $i++) {
+                $droppedResult = array_pop($results);
+                $this->addState($type, $droppedResult, $isNegative, true);
+            }
+            // Cosmetic re-shuffle of rest of dice
+            shuffle($results);
+        }
 
-            // Process the rest of the dice
-            foreach($results as $result) {
-                $this->total += $result*$scaler;
-                $this->addState($sides, $result);
-            }
+        // Process the rest of the dice
+        foreach($results as $result) {
+            $this->total += $result*$scaler;
+            $this->addState($type, $result, $isNegative);
         }
     }
 
@@ -139,7 +245,7 @@ class EZDice {
      */
     protected function getRandomNumber(int $max): int
     {
-        return mt_rand(1,$max);
+        return mt_rand(1, $max);
     }
 
     /**
@@ -171,6 +277,26 @@ class EZDice {
     public function getModifier(): string
     {
         if (!$this->modifier) return "";
-        return sprintf("%+d",$this->modifier);
+        return sprintf("%+d", $this->modifier);
+    }
+    
+    /**
+     * Get the number of dice groups in the last roll.
+     *
+     * @return int the number of dice groups in the last roll.
+     */
+    public function getDiceGroupNumber(): int
+    {
+        return $this->diceGroupNumber;
+    }
+
+    /**
+     * Get the number of modifiers in the last roll.
+     * 
+     * @return int the number of modifiers in the last roll.
+     */
+    public function getDiceModsNumber(): int
+    {
+        return $this->diceModsNumber;
     }
 }
