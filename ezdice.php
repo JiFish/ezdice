@@ -17,6 +17,15 @@ class EZDice {
     private $diceGroupNumber = 0;
     private $diceModsNumber = 0;
 
+    private function resetResultValues(): void
+    {
+        $this->total = 0;
+        $this->states = [];
+        $this->modifier = 0;
+        $this->diceGroupNumber = 0;
+        $this->diceModsNumber = 0;
+    }
+
     /**
      * Parse **$diceStr** as dice notation, then roll those dice.
      *
@@ -29,12 +38,7 @@ class EZDice {
      */
     public function roll(string $diceStr): int|false
     {
-        // Reset result values
-        $this->total = 0;
-        $this->states = [];
-        $this->modifier = 0;
-        $this->diceGroupNumber = 0;
-        $this->diceModsNumber = 0;
+        $this->resetResultValues();
 
         // No dice to roll?
         if (is_numeric($diceStr)) {
@@ -73,6 +77,7 @@ class EZDice {
     public function rollStrict(string $diceStr, bool $allowWhitespace = true, bool $mustContainDice = true): int|false
     {
         if (!$this->strIsStrictlyDice($diceStr, $allowWhitespace, $mustContainDice)) {
+            $this->resetResultValues();
             return false;
         }
         return $this->roll($diceStr);
